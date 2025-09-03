@@ -13,7 +13,6 @@ def show_lower_w(a,y,colour):
         for counter_1 in range(64):
             pixel_colour(counter,counter_1,'black')
 
-img_A=pygame.image.load('/home/god_spud/game/font/UPPER_A.png')
 
 while running:
     for event in pygame.event.get():
