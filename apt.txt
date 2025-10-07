@@ -1,3 +1,0 @@
-xvfb
-xauth
-x11-utils
