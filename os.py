@@ -43,7 +43,7 @@ def screen_input(text_to_be_displayed):
 
 
 # assets
-font=pygame.font.Font('/home/god_spud/spud_os/OpenDyslexicMono-Regular.otf',48)
+font=pygame.font.Font('OpenDyslexicMono-Regular.otf',48)
 
 # values (only on start up can be changed later)
 background=(0,0,0)
