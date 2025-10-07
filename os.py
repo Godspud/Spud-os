@@ -38,12 +38,65 @@ def change_setting(setting_to_be_changed,changed_value,how_to_be_changed=None):
         setting_to_be_changed=changed_value
     return setting_to_be_changed
 
-def screen_input(text_to_be_displayed):
-    print_to_screen(text_to_be_displayed)
+def screen_input(prompt_text=None):
+    text = ""
+    cursor_pos = (32, 0)
+
+    if prompt_text:
+        print_to_screen(prompt_text, (255,255,255), background, (0,0), 0, False)
+    pygame.display.flip()
+
+    entering = True
+    while entering:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                return None
+
+            elif event.type == pygame.KEYDOWN:
+                # Backspace
+                if event.key == pygame.K_BACKSPACE:
+                    text = text[:-1]
+                    cursor_pos = (cursor_pos[0] - char_y, cursor_pos[1])
+
+                # Enter: finish input
+                elif event.key == pygame.K_RETURN:
+                    entering = False
+                    break
+
+                # Normal keys (symbols, punctuation, space)
+                elif pygame.K_SPACE <= event.key <= pygame.K_BACKQUOTE:
+                    key = pygame.key.name(event.key)
+                    char = chr(event.key)
+
+                    if (event.mod & pygame.KMOD_SHIFT) or (event.mod & pygame.KMOD_CAPS):
+                        for counter in range(len(normal_keys)):
+                            if key == normal_keys[counter]:
+                                char = shift_keys[counter]
+                    text, cursor_pos = text_add(char, text, cursor_pos)
+
+                # Letter keys
+                elif pygame.K_a <= event.key <= pygame.K_z:
+                    char = chr(event.key)
+                    if (event.mod & pygame.KMOD_SHIFT) or (event.mod & pygame.KMOD_CAPS):
+                        char = char.upper()
+                    text, cursor_pos = text_add(char, text, cursor_pos)
+
+        # Redraw every frame
+        output_screen.fill(background)
+        if prompt_text:
+            print_to_screen(prompt_text, (255,255,255), background, (0,0), 0, False)
+        print_to_screen(text, (255,255,255), background, (64,0), 0, False)
+        pygame.display.flip()
+        clock.tick(30)
+
+    return text
+
+    
 
 
 # assets
-font=pygame.font.Font('OpenDyslexicMono-Regular.otf',48)
+font=pygame.font.Font('/home/god_spud/spud_os/OpenDyslexicMono-Regular.otf',48)
 
 # values (only on start up can be changed later)
 background=(0,0,0)
@@ -74,8 +127,13 @@ while running:
             if Intro[1]:
                 Intro[1]=False
             
+            #test ctrl + z
+            if event.key == pygame.K_z and (event.mod & pygame.KMOD_CTRL):
+                inpu=screen_input('Hellow')
+                print(inpu)
+
             #setting using ctrl + s
-            if event.key == pygame.K_s and (event.mod & pygame.KMOD_CTRL):
+            elif event.key == pygame.K_s and (event.mod & pygame.KMOD_CTRL):
                 show_settings = True
                 continue
 
