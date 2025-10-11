@@ -1,0 +1,277 @@
+import pygame
+from pygame.locals import *
+import os
+
+#TODO: copy paste
+#TODO: selecting (highlighting)
+#TODO: cursor
+
+pygame.init()
+display_info=pygame.display.Info()
+output_screen=pygame.display.set_mode((display_info.current_w,display_info.current_h))
+clock=pygame.time.Clock()
+running=True
+
+# functions
+def print_to_screen(text,colour,background,location,scroll_y,affected_by_scroll=None):
+    lines=text.split("\n")
+    base_x,base_y=location  # starting position
+
+    for row in range(len(lines)):
+        for col in range(len(lines[row])):
+            x=base_x + col * char_y
+            y=base_y + row * char_x
+
+            if affected_by_scroll == None:
+                y -= scroll_y
+
+            output_screen.blit(
+                font.render(lines[row][col],True,colour,background),
+                (x,y)
+            )
+
+
+def text_add(text_to_add,text,cursor_pos,change_cursor_pos=None):
+    text+=text_to_add
+    if change_cursor_pos != False:
+        cursor_pos=(cursor_pos[0]+char_y,cursor_pos[1])
+    else:
+        return text,cursor_pos
+    return text,cursor_pos
+
+def change_setting(setting_to_be_changed,changed_value,how_to_be_changed=None):
+    if how_to_be_changed == '+':
+        setting_to_be_changed+=changed_value
+    elif how_to_be_changed == '-':
+        setting_to_be_changed-=changed_value
+    else:
+        setting_to_be_changed=changed_value
+    return setting_to_be_changed
+
+def screen_input(prompt_text=None):
+    text=""
+    cursor_pos=(32,0)
+
+    # Determine how many lines the prompt has
+    prompt_lines=0
+    if prompt_text:
+        prompt_lines=prompt_text.count("\n") + 1
+
+    pygame.display.flip()
+
+    entering=True
+    while entering:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                return None
+
+            elif event.type == pygame.KEYDOWN:
+                # Backspace
+                if event.key == pygame.K_BACKSPACE:
+                    cursor_pos=(cursor_pos[0] - char_y,cursor_pos[1])
+                    text=text[:-1]
+
+                # Enter: finish input
+                elif event.key == pygame.K_RETURN:
+                    entering=False
+                    break
+
+                # Normal keys (symbols,punctuation,space)
+                elif pygame.K_SPACE <= event.key <= pygame.K_BACKQUOTE:
+                    key=pygame.key.name(event.key)
+                    char=chr(event.key)
+
+                    if (event.mod & pygame.KMOD_SHIFT) or (event.mod & pygame.KMOD_CAPS):
+                        for counter in range(len(normal_keys)):
+                            if key == normal_keys[counter]:
+                                char=shift_keys[counter]
+                    text,cursor_pos=text_add(char,text,cursor_pos)
+
+                # Letter keys
+                elif pygame.K_a <= event.key <= pygame.K_z:
+                    char=chr(event.key)
+                    if (event.mod & pygame.KMOD_SHIFT) or (event.mod & pygame.KMOD_CAPS):
+                        char=char.upper()
+                    text,cursor_pos=text_add(char,text,cursor_pos)
+
+        # Redraw every frame
+        output_screen.fill(background)
+
+        # Draw prompt text (may have multiple lines)
+        if prompt_text:
+            print_to_screen(prompt_text,(255,255,255),background,(0,0),0,False)
+
+        # Draw input text *below* the prompt
+        print_to_screen(text,(255,255,255),background,(0,prompt_lines * char_x),0,False)
+
+        pygame.display.flip()
+        clock.tick(30)
+
+    return text
+
+def wait_for_inpu(inpu_type):
+    waiting_for_inpu=True
+    while waiting_for_inpu:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                return
+
+            elif event.type in inpu_type:
+                waiting_for_inpu=False
+
+# assets
+font=pygame.font.Font('/home/god_spud/spud_os/OpenDyslexicMono-Regular.otf',48)
+
+# values (only on start up can be changed later)
+background=(0,0,0)
+text=""
+cursor_pos=(0,0)
+char_y=32
+char_x=61
+normal_keys=["`","1","2","3","4","5","6","7","8","9","0","-","=","[","]","\\",";","'",",",".","/"," "]
+shift_keys=["~","!","@","#","$","%","^","&","*","(",")","_","+","{","}","|",":","\"","<",">","?"," "]
+scroll_y=0 #default
+scroll_y_dampaning=10 #can be changed by user
+Settings='Choese a setting to change:\n1: scroll dampaning'
+show_settings=False
+Intro=['welcome to a very minimal text editor type \nto get started or press \nCtrl + s \nto access the settings(incomplete)',True]
+current_file_path=''
+
+#files
+BASE_FOLDER=os.path.join(os.getcwd(),"Spud_text_editor")
+if not os.path.exists(BASE_FOLDER):
+    os.mkdir(BASE_FOLDER)
+    print('a folder has been created')
+
+# startup
+print('Assets and values initialised')
+
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running=False
+
+        elif event.type == pygame.KEYDOWN:
+            if Intro[1]:
+                Intro[1]=False
+            
+            #quit using ctrl + w
+            if event.key == pygame.K_w and (event.mod & pygame.KMOD_CTRL):
+                running=False
+
+            #setting using ctrl + s
+            elif event.key == pygame.K_s and (event.mod & pygame.KMOD_CTRL):
+                inpu=screen_input(Settings)
+                if inpu == '1':
+                    scroll_y_dampaning=screen_input('Input a new value for your scroll dampaning')
+                    scroll_y_dampaning=int(scroll_y_dampaning)
+                continue
+
+            #Saving and loading files using ctrl + l
+            elif event.key == pygame.K_l and (event.mod & pygame.KMOD_CTRL):
+                inpu=screen_input('Would you like to \n1. open and load a file \n2. save a file?')
+                if inpu == '1':
+                    list_of_files=os.listdir(BASE_FOLDER)
+                    list_of_files_2=[]
+                    for counter in range(len(list_of_files)):
+                        list_of_files_2.append((str(counter+1)+'. '+list_of_files[counter]))
+                    inpu=screen_input('\n'.join(list_of_files_2))
+                    cursor_pos=(0,0)
+                    try:
+                        list_of_files[(int(inpu)-1)]
+                        current_file_path=os.path.join(BASE_FOLDER,list_of_files[(int(inpu)-1)])
+                        with open(current_file_path,'r',encoding='utf-8') as current_file:
+                            text=current_file.read()
+
+                    except(IndexError,ValueError):
+                        print_to_screen('Invalid file selected',(255,0,0),background,(0,0),scroll_y)
+                        pygame.display.flip()
+                        wait_for_inpu([pygame.KEYDOWN,pygame.MOUSEBUTTONDOWN])
+                elif inpu == '2':
+                    inpu=screen_input('would you like to \n1. save to the current file \n2. create a new file')
+                    if inpu == '1':
+                        try:
+                            with open(current_file_path,'w',encoding='utf-8') as file:
+                                file.write(text)
+                            print_to_screen('File saved successfully',(0,255,0),background,(0,0),scroll_y)
+                            pygame.display.flip()
+                            wait_for_inpu([pygame.KEYDOWN,pygame.MOUSEBUTTONDOWN])
+                        except (NameError,FileNotFoundError):
+                            print_to_screen('No file currently loaded',(255,0,0),background,(0,0),scroll_y)
+                            pygame.display.flip()
+                            wait_for_inpu([pygame.KEYDOWN,pygame.MOUSEBUTTONDOWN])
+
+                    elif inpu == '2':
+                        new_file_name=screen_input('Enter new file name:')
+                        new_file_path=os.path.join(BASE_FOLDER,new_file_name+'.txt')
+                        if os.path.exists(new_file_path):
+                            print_to_screen('File with that name already exists',(255,0,0),background,(0,0),scroll_y)
+                            pygame.display.flip()
+
+                            # wait for click before continuing
+                            wait_for_inpu([pygame.MOUSEBUTTONDOWN,pygame.KEYDOWN])
+                            continue
+                        with open(new_file_path,'w',encoding='utf-8') as file:
+                            file.write(text)
+                        current_file_path=new_file_path
+                        print_to_screen('File saved as new file',(0,255,0),background,(0,0),scroll_y)
+                        pygame.display.flip()
+                        wait_for_inpu([pygame.KEYDOWN,pygame.MOUSEBUTTONDOWN])
+
+            # Backspace
+            elif event.key == pygame.K_BACKSPACE:
+                cursor_pos=(cursor_pos[0]-char_y,cursor_pos[1])
+                text=text[:-1]
+
+            # Enter
+            elif event.key == pygame.K_RETURN:
+                text,cursor_pos=text_add('\n',text,cursor_pos,False)
+
+            # Tab
+            elif event.key == pygame.K_TAB:
+                text,cursor_pos=text_add("    ",text,cursor_pos)
+
+            # Letters from (https://www.pygame.org/docs/ref/key.html?highlight=key#module-pygame.key)
+            #First half for all non letter keys (char.upper dosent work to get the caps version)
+            elif pygame.K_SPACE <= event.key <= pygame.K_BACKQUOTE:
+                key=pygame.key.name(event.key)
+
+                char=chr(event.key)
+
+                # shift
+                if (event.mod & pygame.KMOD_SHIFT) or (event.mod & pygame.KMOD_CAPS):
+                    for counter in range(len(normal_keys)):
+                        if key == normal_keys[counter]:
+                            char=shift_keys[counter]
+                
+                text,cursor_pos=text_add(char,text,cursor_pos)
+
+            #Second half
+            elif pygame.K_a <= event.key <= pygame.K_z:
+                char=chr(event.key)
+                if (event.mod & pygame.KMOD_SHIFT) or (event.mod & pygame.KMOD_CAPS):
+                    char=char.upper()
+                text,cursor_pos=text_add(char,text,cursor_pos)
+
+        elif event.type == MOUSEWHEEL:
+            scroll_y+=event.y*scroll_y_dampaning
+
+        elif event.type == MOUSEBUTTONDOWN:
+            # Hide settings on any click
+            if Intro[1]:
+                Intro[1]=False
+
+    # Draw
+    output_screen.fill(background)
+    print_to_screen(text,(255,255,255),background,(0,0),scroll_y)
+
+    if show_settings:
+        print_to_screen(Settings,(255,255,0),background,(50,50),scroll_y,False)
+    if Intro[1]:
+        print_to_screen(Intro[0],(255,255,255),background,(0,0),False)
+    pygame.display.flip()
+    clock.tick(30)
+
+print('done')
