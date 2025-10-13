@@ -14,27 +14,21 @@ running=True
 
 # functions
 def print_to_screen(text,colour,background,location,scroll_y,affected_by_scroll=None):
-    lines=text.split("\n")
-    base_x,base_y=location  # starting position
+    lines = text.split("\n")
+    base_x, base_y = location
 
-    for row in range(len(lines)):
-        for col in range(len(lines[row])):
-            x=base_x + col * char_y
-            y=base_y + row * char_x
-
-            if affected_by_scroll == None:
-                y -= scroll_y
-
-            output_screen.blit(
-                font.render(lines[row][col],True,colour,background),
-                (x,y)
-            )
-
+    for row, line in enumerate(lines):
+        y = base_y + row * font.get_linesize()
+        if not affected_by_scroll:
+            y -= scroll_y
+        text_surface = font.render(line, True, colour, background)
+        output_screen.blit(text_surface, (base_x, int(y)))
 
 def text_add(text_to_add,text,cursor_pos,change_cursor_pos=None):
     text+=text_to_add
     if change_cursor_pos != False:
-        cursor_pos=(cursor_pos[0]+char_y,cursor_pos[1])
+        width,height=font.size(text_to_add)
+        cursor_pos=(cursor_pos[0]+width,cursor_pos[1])
     else:
         return text,cursor_pos
     return text,cursor_pos
@@ -55,7 +49,7 @@ def screen_input(prompt_text=None):
     # Determine how many lines the prompt has
     prompt_lines=0
     if prompt_text:
-        prompt_lines=prompt_text.count("\n") + 1
+        prompt_lines=prompt_text.count("\n")+1
 
     pygame.display.flip()
 
@@ -64,12 +58,13 @@ def screen_input(prompt_text=None):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
-                return None
+                running=False
+                return running
 
             elif event.type == pygame.KEYDOWN:
                 # Backspace
                 if event.key == pygame.K_BACKSPACE:
-                    cursor_pos=(cursor_pos[0] - char_y,cursor_pos[1])
+                    cursor_pos=(cursor_pos[0]-font.size(text[-1])[0],cursor_pos[1])
                     text=text[:-1]
 
                 # Enter: finish input
@@ -103,7 +98,7 @@ def screen_input(prompt_text=None):
             print_to_screen(prompt_text,(255,255,255),background,(0,0),0,False)
 
         # Draw input text *below* the prompt
-        print_to_screen(text,(255,255,255),background,(0,prompt_lines * char_x),0,False)
+        print_to_screen(text,(255,255,255),background,(0,prompt_lines*char_y),0,False)
 
         pygame.display.flip()
         clock.tick(30)
@@ -122,21 +117,23 @@ def wait_for_inpu(inpu_type):
                 waiting_for_inpu=False
 
 # assets
-font=pygame.font.Font('/home/god_spud/spud_os/OpenDyslexicMono-Regular.otf',48)
+#font will be in the main settings loop as it is supposed to be interchangable
+font=pygame.font.Font('Fonts/OpenDyslexicMono-Regular.otf',48)#default
+
+
 
 # values (only on start up can be changed later)
 background=(0,0,0)
 text=""
+char_y=font.size('`')[1]
 cursor_pos=(0,0)
-char_y=32
-char_x=61
 normal_keys=["`","1","2","3","4","5","6","7","8","9","0","-","=","[","]","\\",";","'",",",".","/"," "]
 shift_keys=["~","!","@","#","$","%","^","&","*","(",")","_","+","{","}","|",":","\"","<",">","?"," "]
 scroll_y=0 #default
 scroll_y_dampaning=10 #can be changed by user
-Settings='Choese a setting to change:\n1: scroll dampaning'
+Settings='Choese a setting to change:\n1: scroll dampaning \n2: Font selection'
 show_settings=False
-Intro=['welcome to a very minimal text editor type \nto get started or press \nCtrl + s \nto access the settings(incomplete)',True]
+Intro=['welcome to a very minimal text editor type \nto get started or press \nCtrl+s \nto access the settings(incomplete)',True]
 current_file_path=''
 
 #files
@@ -148,6 +145,7 @@ if not os.path.exists(BASE_FOLDER):
 # startup
 print('Assets and values initialised')
 
+
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -157,19 +155,29 @@ while running:
             if Intro[1]:
                 Intro[1]=False
             
-            #quit using ctrl + w
+            #quit using ctrl+w
             if event.key == pygame.K_w and (event.mod & pygame.KMOD_CTRL):
                 running=False
 
-            #setting using ctrl + s
+            #setting using ctrl+s
             elif event.key == pygame.K_s and (event.mod & pygame.KMOD_CTRL):
                 inpu=screen_input(Settings)
                 if inpu == '1':
                     scroll_y_dampaning=screen_input('Input a new value for your scroll dampaning')
                     scroll_y_dampaning=int(scroll_y_dampaning)
+                elif inpu == '2':
+                    list_of_files=os.listdir('/home/god_spud/spud_os/Fonts')
+                    list_of_files_2=[]
+                    for counter in range(len(list_of_files)):
+                        list_of_files_2.append((str(counter+1)+'. '+list_of_files[counter]))
+                    inpu=screen_input('\n'.join(list_of_files_2))
+                    font_path=os.path.join('/home/god_spud/spud_os/Fonts',list_of_files[int(inpu)-1])
+                    print(font_path)
+                    font=pygame.font.Font(font_path,48)
+
                 continue
 
-            #Saving and loading files using ctrl + l
+            #Saving and loading files using ctrl+l
             elif event.key == pygame.K_l and (event.mod & pygame.KMOD_CTRL):
                 inpu=screen_input('Would you like to \n1. open and load a file \n2. save a file?')
                 if inpu == '1':
@@ -222,7 +230,7 @@ while running:
 
             # Backspace
             elif event.key == pygame.K_BACKSPACE:
-                cursor_pos=(cursor_pos[0]-char_y,cursor_pos[1])
+                cursor_pos=(cursor_pos[0]-font.size(text[-1])[0],cursor_pos[1])
                 text=text[:-1]
 
             # Enter
@@ -264,6 +272,7 @@ while running:
                 Intro[1]=False
 
     # Draw
+    
     output_screen.fill(background)
     print_to_screen(text,(255,255,255),background,(0,0),scroll_y)
 
