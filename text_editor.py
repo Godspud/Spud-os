@@ -10,13 +10,14 @@ pygame.init()
 display_info=pygame.display.Info()
 output_screen=pygame.display.set_mode((display_info.current_w,display_info.current_h))
 clock=pygame.time.Clock()
+global running
 running=True
 
 # functions
 def print_to_screen(text,colour,background,location,scroll_y,affected_by_scroll=None):
     lines = text.split("\n")
     base_x, base_y = location
-
+    
     for row, line in enumerate(lines):
         y = base_y + row * font.get_linesize()
         if not affected_by_scroll:
@@ -172,7 +173,6 @@ while running:
                         list_of_files_2.append((str(counter+1)+'. '+list_of_files[counter]))
                     inpu=screen_input('\n'.join(list_of_files_2))
                     font_path=os.path.join('/home/god_spud/spud_os/Fonts',list_of_files[int(inpu)-1])
-                    print(font_path)
                     font=pygame.font.Font(font_path,48)
 
                 continue
