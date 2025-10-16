@@ -14,7 +14,11 @@ global running
 running=True
 
 # functions
-def print_to_screen(text,colour,background,location,scroll_y,affected_by_scroll=None):
+def print_to_screen(text,colour,background,location,scroll_y,affected_by_scroll=None,background_overide=None):
+    if background_overide == False:
+        pass
+    else:
+        output_screen.fill(background)
     lines = text.split("\n")
     base_x, base_y = location
     
@@ -33,15 +37,6 @@ def text_add(text_to_add,text,cursor_pos,change_cursor_pos=None):
     else:
         return text,cursor_pos
     return text,cursor_pos
-
-def change_setting(setting_to_be_changed,changed_value,how_to_be_changed=None):
-    if how_to_be_changed == '+':
-        setting_to_be_changed+=changed_value
-    elif how_to_be_changed == '-':
-        setting_to_be_changed-=changed_value
-    else:
-        setting_to_be_changed=changed_value
-    return setting_to_be_changed
 
 def screen_input(prompt_text=None):
     text=""
@@ -65,8 +60,11 @@ def screen_input(prompt_text=None):
             elif event.type == pygame.KEYDOWN:
                 # Backspace
                 if event.key == pygame.K_BACKSPACE:
-                    cursor_pos=(cursor_pos[0]-font.size(text[-1])[0],cursor_pos[1])
-                    text=text[:-1]
+                    try:
+                        cursor_pos=(cursor_pos[0]-font.size(text[-1])[0],cursor_pos[1])
+                        text=text[:-1]
+                    except IndexError:
+                        pass
 
                 # Enter: finish input
                 elif event.key == pygame.K_RETURN:
@@ -91,15 +89,12 @@ def screen_input(prompt_text=None):
                         char=char.upper()
                     text,cursor_pos=text_add(char,text,cursor_pos)
 
-        # Redraw every frame
-        output_screen.fill(background)
-
         # Draw prompt text (may have multiple lines)
         if prompt_text:
-            print_to_screen(prompt_text,(255,255,255),background,(0,0),0,False)
+            print_to_screen(prompt_text,colour,background,(0,0),0,False,False)
 
         # Draw input text *below* the prompt
-        print_to_screen(text,(255,255,255),background,(0,prompt_lines*char_y),0,False)
+        print_to_screen(text,colour,background,(0,prompt_lines*char_y),0,False,False)
 
         pygame.display.flip()
         clock.tick(30)
@@ -119,12 +114,13 @@ def wait_for_inpu(inpu_type):
 
 # assets
 #font will be in the main settings loop as it is supposed to be interchangable
-font=pygame.font.Font('Fonts/OpenDyslexicMono-Regular.otf',48)#default
+font=pygame.font.Font('Fonts/OpenDyslexicMono.otf',48)#default
 
 
 
 # values (only on start up can be changed later)
-background=(0,0,0)
+background=(0,0,0) #can be changed later
+colour=(255,255,255) #can be changed later
 text=""
 char_y=font.size('`')[1]
 cursor_pos=(0,0)
@@ -132,7 +128,7 @@ normal_keys=["`","1","2","3","4","5","6","7","8","9","0","-","=","[","]","\\",";
 shift_keys=["~","!","@","#","$","%","^","&","*","(",")","_","+","{","}","|",":","\"","<",">","?"," "]
 scroll_y=0 #default
 scroll_y_dampaning=10 #can be changed by user
-Settings='Choese a setting to change:\n1: scroll dampaning \n2: Font selection'
+Settings='Choese a setting to change:\n1: scroll dampaning \n2: Font selection \n3: change background colour \n4: change the text colour'
 show_settings=False
 Intro=['welcome to a very minimal text editor type \nto get started or press \nCtrl+s \nto access the settings(incomplete)',True]
 current_file_path=''
@@ -172,8 +168,32 @@ while running:
                     for counter in range(len(list_of_files)):
                         list_of_files_2.append((str(counter+1)+'. '+list_of_files[counter]))
                     inpu=screen_input('\n'.join(list_of_files_2))
-                    font_path=os.path.join('/home/god_spud/spud_os/Fonts',list_of_files[int(inpu)-1])
-                    font=pygame.font.Font(font_path,48)
+                    try:
+                        font_path=os.path.join('/home/god_spud/spud_os/Fonts',list_of_files[int(inpu)-1])
+                        font=pygame.font.Font(font_path,48)
+                    except (FileNotFoundError,FileExistsError,IndexError):
+                        print_to_screen('Invalid file',(255,0,0),background,(0,0),0,False)
+                        pygame.display.flip()
+                        wait_for_inpu([pygame.KEYDOWN,pygame.MOUSEBUTTONDOWN])
+                elif inpu == '3':
+                    try:
+                        background_=screen_input('Input 3 values from 0 to 255 in the\n RGB colour fromat')
+                        background_=background_.split(' ')
+                        background=(int(background_[0]),int(background_[1]),int(background_[2]))
+                    except (IndexError,ValueError):
+                        print_to_screen('Invalid input')
+                        pygame.display.flip()
+                        wait_for_inpu([pygame.MOUSEBUTTONDOWN,pygame.KEYDOWN])
+                elif inpu == '4':
+                    try:
+                        colour_=screen_input('Input 3 values from 0 to 255 in the\n RGB colour fromat')
+                        colour_=colour_.split(' ')
+                        colour=(int(colour_[0]),int(colour_[1]),int(colour_[2]))
+                    except (IndexError,ValueError):
+                        print_to_screen('Invalid input')
+                        pygame.display.flip()
+                        wait_for_inpu([pygame.MOUSEBUTTONDOWN,pygame.KEYDOWN])
+
 
                 continue
 
@@ -198,7 +218,7 @@ while running:
                         pygame.display.flip()
                         wait_for_inpu([pygame.KEYDOWN,pygame.MOUSEBUTTONDOWN])
                 elif inpu == '2':
-                    inpu=screen_input('would you like to \n1. save to the current file \n2. create a new file')
+                    inpu=screen_input('would you like to \n1. save to the current file \n2. save to a file')
                     if inpu == '1':
                         try:
                             with open(current_file_path,'w',encoding='utf-8') as file:
@@ -215,8 +235,15 @@ while running:
                         new_file_name=screen_input('Enter new file name:')
                         new_file_path=os.path.join(BASE_FOLDER,new_file_name+'.txt')
                         if os.path.exists(new_file_path):
-                            print_to_screen('File with that name already exists',(255,0,0),background,(0,0),scroll_y)
+                            inpu=screen_input('File with that name already exists \nDo you want to override it [Y/n]')
                             pygame.display.flip()
+                            if inpu.upper() == 'Y':        
+                                with open(new_file_path,'w',encoding='utf-8') as file:
+                                    file.write(text)
+                                current_file_path=new_file_path
+                                print_to_screen('File saved as new file',(0,255,0),background,(0,0),scroll_y)
+                                pygame.display.flip()
+                                wait_for_inpu([pygame.KEYDOWN,pygame.MOUSEBUTTONDOWN])
 
                             # wait for click before continuing
                             wait_for_inpu([pygame.MOUSEBUTTONDOWN,pygame.KEYDOWN])
@@ -230,8 +257,11 @@ while running:
 
             # Backspace
             elif event.key == pygame.K_BACKSPACE:
-                cursor_pos=(cursor_pos[0]-font.size(text[-1])[0],cursor_pos[1])
-                text=text[:-1]
+                try:
+                    cursor_pos=(cursor_pos[0]-font.size(text[-1])[0],cursor_pos[1])
+                    text=text[:-1]
+                except IndexError:
+                    pass
 
             # Enter
             elif event.key == pygame.K_RETURN:
@@ -272,14 +302,12 @@ while running:
                 Intro[1]=False
 
     # Draw
-    
-    output_screen.fill(background)
-    print_to_screen(text,(255,255,255),background,(0,0),scroll_y)
+    print_to_screen(text,colour,background,(0,0),scroll_y,False,True)
 
     if show_settings:
         print_to_screen(Settings,(255,255,0),background,(50,50),scroll_y,False)
     if Intro[1]:
-        print_to_screen(Intro[0],(255,255,255),background,(0,0),False)
+        print_to_screen(Intro[0],colour,background,(0,0),False)
     pygame.display.flip()
     clock.tick(30)
 
