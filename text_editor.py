@@ -5,12 +5,12 @@ import os
 #TODO: copy paste
 #TODO: selecting (highlighting)
 #TODO: cursor
+#TODO: find largest yvalue for chars for better font display
 
 pygame.init()
 display_info=pygame.display.Info()
 output_screen=pygame.display.set_mode((display_info.current_w,display_info.current_h))
 clock=pygame.time.Clock()
-global running
 running=True
 
 # functions
@@ -26,8 +26,7 @@ def print_to_screen(text,colour,background,location,scroll_y,affected_by_scroll=
         y = base_y + row * font.get_linesize()
         if not affected_by_scroll:
             y -= scroll_y
-        text_surface = font.render(line, True, colour, background)
-        output_screen.blit(text_surface, (base_x, int(y)))
+        output_screen.blit(font.render(line,True,colour,background),(base_x,int(y)))
 
 def text_add(text_to_add,text,cursor_pos,change_cursor_pos=None):
     text+=text_to_add
@@ -39,6 +38,7 @@ def text_add(text_to_add,text,cursor_pos,change_cursor_pos=None):
     return text,cursor_pos
 
 def screen_input(prompt_text=None):
+    output_screen.fill((0,0,0))
     text=""
     cursor_pos=(32,0)
 
@@ -91,7 +91,7 @@ def screen_input(prompt_text=None):
 
         # Draw prompt text (may have multiple lines)
         if prompt_text:
-            print_to_screen(prompt_text,colour,background,(0,0),0,False,False)
+            print_to_screen(prompt_text,colour,background,(0,0),0,False)
 
         # Draw input text *below* the prompt
         print_to_screen(text,colour,background,(0,prompt_lines*char_y),0,False,False)
@@ -114,7 +114,8 @@ def wait_for_inpu(inpu_type):
 
 # assets
 #font will be in the main settings loop as it is supposed to be interchangable
-font=pygame.font.Font('Fonts/OpenDyslexicMono.otf',48)#default
+font_path=os.path.join('/home/god_spud/spud_os/Fonts/OpenDyslexicMono.otf')
+font=pygame.font.Font(font_path,48)
 
 
 
@@ -128,7 +129,7 @@ normal_keys=["`","1","2","3","4","5","6","7","8","9","0","-","=","[","]","\\",";
 shift_keys=["~","!","@","#","$","%","^","&","*","(",")","_","+","{","}","|",":","\"","<",">","?"," "]
 scroll_y=0 #default
 scroll_y_dampaning=10 #can be changed by user
-Settings='Choese a setting to change:\n1: scroll dampaning \n2: Font selection \n3: change background colour \n4: change the text colour'
+Settings='Choese a setting to change:\n1: scroll dampaning \n2: Font selection \n3: font size \n4: background colour \n5: the text colour'
 show_settings=False
 Intro=['welcome to a very minimal text editor type \nto get started or press \nCtrl+s \nto access the settings(incomplete)',True]
 current_file_path=''
@@ -176,21 +177,35 @@ while running:
                         pygame.display.flip()
                         wait_for_inpu([pygame.KEYDOWN,pygame.MOUSEBUTTONDOWN])
                 elif inpu == '3':
-                    try:
-                        background_=screen_input('Input 3 values from 0 to 255 in the\n RGB colour fromat')
-                        background_=background_.split(' ')
-                        background=(int(background_[0]),int(background_[1]),int(background_[2]))
-                    except (IndexError,ValueError):
-                        print_to_screen('Invalid input')
+                    inpu=screen_input('input a new font size')
+                    if int(inpu) > 0:
+                        font=pygame.font.Font(font_path,int(inpu))
+                    else:
+                        print_to_screen('Invalid font size',(255,0,0),background,(0,0),0,False)
                         pygame.display.flip()
                         wait_for_inpu([pygame.MOUSEBUTTONDOWN,pygame.KEYDOWN])
                 elif inpu == '4':
                     try:
-                        colour_=screen_input('Input 3 values from 0 to 255 in the\n RGB colour fromat')
-                        colour_=colour_.split(' ')
-                        colour=(int(colour_[0]),int(colour_[1]),int(colour_[2]))
+                        background_=screen_input('Input 3 values from 0 to 255 in the\n RGB colour fromat')
+                        if '-' in background_:
+                            raise ValueError
+                        else:
+                            background_=background_.split(' ')
+                            background=(int(background_[0]),int(background_[1]),int(background_[2]))
                     except (IndexError,ValueError):
-                        print_to_screen('Invalid input')
+                        print_to_screen('Invalid input',(255,0,0),background,(0,0),0,False)
+                        pygame.display.flip()
+                        wait_for_inpu([pygame.MOUSEBUTTONDOWN,pygame.KEYDOWN])
+                elif inpu == '5':
+                    try:
+                        colour_=screen_input('Input 3 values from 0 to 255 in the\n RGB colour fromat')
+                        if '-' in colour_:
+                            raise ValueError
+                        else:
+                            colour_=colour_.split(' ')
+                            colour=(int(colour_[0]),int(colour_[1]),int(colour_[2]))
+                    except (IndexError,ValueError):
+                        print_to_screen('Invalid input',(255,0,0),background,(0,0),0,False)
                         pygame.display.flip()
                         wait_for_inpu([pygame.MOUSEBUTTONDOWN,pygame.KEYDOWN])
 
